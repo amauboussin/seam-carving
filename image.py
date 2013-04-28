@@ -51,7 +51,7 @@ class sc_Image:
 
         
 
-    def get_neighbors_simple (self, pos, pixels):
+    def get_neighbors_three_simple (self, pos, pixels):
 
         x, y = pos
         data = []
@@ -63,16 +63,16 @@ class sc_Image:
                     data.append(None)
         return data
 
-    def recalculate_neighbors(self, pos):
-        for p in self.get_neighbors_simple (pos, self.pixels):
+    def recalculate_three_neighbors(self, pos):
+        for p in self.get_neighbors_three_simple (pos, self.pixels):
             if p is not None:
                 p.to_recalculate()
 
 
     # gets the 3x3square of pixels of the pixel at pos for e1 function
-    def get_neighbors (self, pos, pixels):
+    def get_three_neighbors (self, pos, pixels):
 
-        data = self.get_neighbors_simple(pos, pixels)
+        data = self.get_neighbors_three_simple(pos, pixels)
 
         edge_replace = {0 : [2,6,8], 1 : [7], 2 : [0,8,6],
         3 : [5], 5 : [3], 6 : [0,8,2],  7 : [1], 8 : [2,6,0]
@@ -87,6 +87,16 @@ class sc_Image:
                         break
 
         return data
+
+    def get_five_neighbors (self, pos, pixels) :
+
+        x, y = pos
+        data = []
+        for j in range(y+2, y-3, -1):
+            for i in range(x-2,x+3):
+                data.append(pixels[(i,j)])
+        return data
+
 
     def get_pixel(self, pos):
         if pos in self.pixels:
@@ -103,7 +113,13 @@ class sc_Image:
 
         def set_energy_e1 (pixel):
             if pixel.recalculate :
-                return e1 (pixel, self.get_neighbors (pixel.pos,self.pixels) )
+                return e1 (pixel, self.get_three_neighbors (pixel.pos,self.pixels) )
+            else :
+                return pixel
+
+        def set_energy_e1_five (pixel) :
+            if pixel.recalculate :
+                return e1_five (pixel, self.get_five_neighbors (pixel.pos,temp_pix) )
             else :
                 return pixel
 
@@ -113,6 +129,37 @@ class sc_Image:
         #print 'p127-0 is None ', ( self.pixels[(127,0)] is None)
         if algorithm == 'e1':
             map (set_energy_e1 ,self.pixels.values() ) 
+
+        elif algorithm == 'e1_five':
+            temp_pix = self.pixels
+
+            for h in [-2. -1, image.height +1, image.height +2] : 
+                for w in range(image.width):
+                    if h == -1 or h == -2:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, 0)].rgb )
+                    else:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, self.height)].rgb )
+
+            for w in [-2, -1, image.width +1, image.width +2] :
+                for h in range(-2, image.height + 2)
+                    if w == -1 or w == -2:
+                        if h == -1 or -2:
+                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,0)].rgb )
+                        elif h == image.height + 1 or h == image.height + 2:
+                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,self.height)].rgb )
+                        else:
+                            temp_pix[(w,h)] = Pixel((w,h), self.pixels[(0, h)].rgb )
+                    else:
+                        if h == -1 or -2:
+                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width,0)].rgb )
+                        elif h == image.height + 1 or h == image.height + 2:
+                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width,self.height)].rgb)
+                        else:
+                            temp_pix[(w,h)] = Pixel((w,h), self.pixels[(self.width, h)].rgb )
+
+            for h in range(self.height):
+                for w in range(self.width):
+                    set_energy_e1_five( temp_pix[(w,h)] )
 
         elif algorithm == 'entropy':
             map (set_energy_entropy ,self.pixels.values() ) 
