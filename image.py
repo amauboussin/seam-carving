@@ -395,7 +395,7 @@ class sc_Image:
         return seams
 
     #calculate the lowest energy seams then add duplicates of them to the picture
-    def enlarge (self,  new_pixels, orientation = 'vertical', energy = 'e1', alg = 'dyn'):
+    def enlarge (self,  new_pixels, orientation = 'vertical', energy = 'sobel', alg = 'dyn'):
 
         if orientation == 'horizontal' :
             self.transpose()
@@ -426,7 +426,7 @@ class sc_Image:
 
 
     # shrinks a picture by continouslly removing the lowest energy seem
-    def shrink (self, to_remove, orientation = "vertical", energy = 'e1', alg = 'dyn'):
+    def shrink (self, to_remove, orientation = "vertical", energy = 'sobel', alg = 'dyn'):
 
         counter = 0
 
@@ -444,6 +444,30 @@ class sc_Image:
 
         if orientation == 'horizontal' :
             self.transpose()    
+
+
+    def enlarge_object(self, seams, energy = 'sobel', alg = 'dyn'):
+        self.shrink(seams/2, 'vertical', energy, alg)
+        self.shrink(seams/2, 'horizontal', energy, alg)
+
+        self.enlarge(seams/2, 'vertical', energy, alg)
+        self.enlarge(seams/2, 'horizontal', energy, alg)
+
+
+
+    def remove_object(self, energy = 'sobel', alg = 'dyn'):
+
+        max_width = 0
+        for h in range(self.height): 
+            width = 0
+            for w in range(self.width):
+                if self.pixels[(w,h)].rgb == (35, 255, 9):
+                    self.pixels[(w,h)].to_remove = True
+                    width += 1
+
+            if width > max_width:
+                max_width = width
+
 
 
 
@@ -471,6 +495,8 @@ class Pixel:
             self.gray = gray
 
         self.energy = 0
+
+        self.to_remove = False
 
         self.recalculate = True
 

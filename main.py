@@ -26,8 +26,12 @@ import image
 # im.to_energy_pic('images/castle_scharr5.jpg', 'scharr5')
 
 
-im = image.sc_Image.from_filepath2("images/skateboarder.jpg")
-im.to_seam_pic("images/skateboarder_entropy_seams.jpg",50, energy = 'entropy')
+im = image.sc_Image.from_filepath2("images/sunset_to_remove.jpg")
+
+im.remove_object()
+im.to_jpeg("images/sunset_object_removed.jpg")
+
+# im.to_seam_pic("images/skateboarder_entropy_seams.jpg",80, energy = 'entropy')
 
 
 #im.shrink(30,energy = 'sobel', alg = 'dyn')

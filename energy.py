@@ -65,17 +65,17 @@ def Scharr_five_op(pixel, neighbors):
 #image expansion for the final submission
 def entropy(pixel, square):
    num_bins = 10
-   pix_range = 16844000/500
+   pix_range = 16844000/1000
    #b = pix_range/num_bins
-   b = 20000
+   b = 50
    hist_len = len(square)
    dim = hist_len**(.5)
    histogram = {}
    for i in range (10):
-      histogram[b + (b/4)*i] = 1
+      histogram[b + (b/5)*i] = 1
    #histogram = {b:1, 2*b:1, 3*b:1, 4*b:1, 5*b:1, 6*b:1, 7*b:1, 8*b:1, 9*b:1, 10*b:1}
    for x in range (hist_len):
-       for k, v in histogram.iteritems():
+       for k in sorted(histogram.keys()):
           #print square[x].gray
           if (square[x] != None and square[x].gray < k):                
              histogram[k] += 1
@@ -87,8 +87,8 @@ def entropy(pixel, square):
    #Shannon entropy formula with a base 2 log. Source:
    #http://upload.wikimedia.org/math/8/7/e/87efdf0d38947240683250d3a24466e0.png
    pixel.energy = -sum([p*(log(p, 2)) for p in square_prob])
-   print pixel.energy
-   pixel.energy = pixel.energy * 500
+   #print pixel.energy
+   #pixel.energy = pixel.energy ** 5
    #print pixel.energy
    pixel.recalculate = False
    return pixel
