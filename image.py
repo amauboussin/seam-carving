@@ -1,13 +1,14 @@
 import energy
-from seams import Seam, seam_dijk, seam_dyn
+from seams import seam_dijk, seam_dyn
 from random import randrange
 
 import copy
 import Image
 
+# Grayscales the image so that we can run energy calculations on it
 def to_grayscale (img):
     return img.convert("L")
-
+# creates image sc object from python image library representation of a picture
 def from_pil (im):
     this_id = 0
     pixels = {}
@@ -27,7 +28,8 @@ def from_pil (im):
                 pixels[(w,h)] = Pixel( (w,h), (0,0,0), gray = color  )
     return pixels, width, height
 
-#representation of an image for seam carving
+# representation of an image for seam carving with all the methods encapsulating critical
+# functions to seam generation
 class sc_Image:
     def __init__(self, dimensions, pixels, PIL): 
         self.width = dimensions[0]
@@ -63,6 +65,7 @@ class sc_Image:
         print 'calculating energies'
         return cls ((width, height), pixels, im)
 
+    # gets neigbors to pixel at given position in image in form of pixle list
     def get_neighbors_simple (self, pos, pixels, dim):
         x, y = pos
         data = []
@@ -74,6 +77,7 @@ class sc_Image:
                     data.append(None)
         return data
 
+    # flags neigboring pixles to pixle being removed so they can be recalculated by energy algorithm 
     def recalculate_neighbors(self, pos, dim):
         for p in self.get_neighbors_simple (pos, self.pixels, self.dim):
             if p is not None:
@@ -98,12 +102,55 @@ class sc_Image:
 
         return data
 
+
+    # get neighbors within a 5X5 square of the target pixel retrurning a list of pixles
+    def get_five_neighbors (self, pos, pixels) :
+
+        x, y = pos
+        data = []
+        for j in range(y+2, y-3, -1):
+            for i in range(x-2,x+3):
+                data.append(pixels[(i,j)])
+        return data
+
+
+    # gets pixle object at given postion
+
     def get_pixel(self, pos):
         if pos in self.pixels:
             return self.pixels[pos]
         else:
             return None
 
+    def make_mirror_dic (self) :
+        marg = self.dim/2
+        temp_pix = self.pixels
+
+        for h in range(-marg, 0) + range(self.height, self.height + marg): 
+            for w in range(self.width):
+                if h < 0 :
+                    temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, 0)].rgb )
+                else :
+                    temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, self.height -1)].rgb )
+
+        for w in range(-marg, 0) + range(self.width, self.width + marg): 
+            for h in range(- marg, self.height + marg):
+                if w < 0:
+                    if h < 0:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,0)].rgb )
+                    elif h >= self.height:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,self.height-1)].rgb )
+                    else:
+                        temp_pix[(w,h)] = Pixel((w,h), self.pixels[(0, h)].rgb )
+                else:
+                    if h < 0:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width-1,0)].rgb )
+                    elif h >= self.height:
+                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width-1,self.height-1)].rgb)
+                    else:
+                        temp_pix[(w,h)] = Pixel((w,h), self.pixels[(self.width-1, h)].rgb)
+
+        return temp_pix
 
     # sets the energies of each pixel using the specified algorithm
     def set_energies (self, algorithm = 'sobel') :
@@ -164,31 +211,7 @@ class sc_Image:
             map (set_energy_e1_Kroon ,self.pixels.values() ) 
 
         elif (algorithm == 'sobel5' or algorithm == 'scharr5'):
-            temp_pix = self.pixels
-
-            for h in [-2, -1, self.height, self.height +1] : 
-                for w in range(self.width):
-                    if h == -1 or h == -2:
-                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, 0)].rgb )
-                    else:
-                        temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(w, self.height -1)].rgb )
-
-            for w in [-2, -1, self.width, self.width +1]:
-                for h in range(-2, self.height + 2):
-                    if w == -1 or w == -2:
-                        if h == -1 or -2:
-                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,0)].rgb )
-                        elif h == self.height or h == self.height + 1:
-                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(0,self.height-1)].rgb )
-                        else:
-                            temp_pix[(w,h)] = Pixel((w,h), self.pixels[(0, h)].rgb )
-                    else:
-                        if h == -1 or -2:
-                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width-1,0)].rgb )
-                        elif h == self.height or h == self.height + 1:
-                            temp_pix[(w,h)] = Pixel( (w,h), self.pixels[(self.width-1,self.height-1)].rgb)
-                        else:
-                            temp_pix[(w,h)] = Pixel((w,h), self.pixels[(self.width-1, h)].rgb )
+            temp_pix = make_mirror_dic ()
 
             for h in range(self.height):
                 for w in range(self.width):
@@ -198,6 +221,7 @@ class sc_Image:
                         set_energy_e1_Scharr_5( temp_pix[(w,h)] )
 
         elif algorithm == 'entropy':
+            temp_pix = make_mirror_dic(self)
             map (set_energy_entropy ,self.pixels.values() ) 
 
         else:
@@ -209,23 +233,20 @@ class sc_Image:
     # pixel at the left edge of the image and finds the lowest.
     # If resize is horizontal, then calls seam_for_start_hor on every
     # pixel at the top edge of the image and finds the lowest.
-    def get_next_seam (self, alg , orientation ) :
+    def get_next_seam (self, alg ) :
 
-        #get all of the starting pixels
-        if orientation == 'horizontal' : 
-            raise NotImplementedError
-        elif orientation == 'vertical' :
-            if alg == 'dijk' :
-                return seam_dijk(self, orientation)
-            else :
-                return seam_dyn(self,orientation)
-        else:
-            raise Exception("Orientation must be vertical or horizontal" )
+        #get all of the starting pixel
+        if alg == 'dijk' :
+            return seam_dijk(self)
+        else :
+            return seam_dyn(self)
         return seam
-
+    
+    # gets the leftmost verical row in ordered list
     def top_vert_row (self) :
         return map (self.get_pixel, [(0,h) for h in range(self.height)] )
 
+    # gets the top horizonal row of pixles in ordered list
     def top_horz_row (self) :
         return map (self.get_pixel, [(w,0) for w in range(self.width)] )
 
@@ -258,12 +279,15 @@ class sc_Image:
         self.pixels = original_pixels
 
 
-    def to_seam_pic (self, filepath, n, energy = 'sobel', alg = 'dyn'):
+
+    def to_seam_pic (self, filepath, n, energy = 'sobel', alg = 'dyn', orientation = 'vertical'):
+
+        if orientation == 'horizontal' :
+            self.transpose()
 
         original_pixels = copy.deepcopy(self.pixels)
         original_width = self.width
         original_height = self.height
-
 
         seams = self.get_n_seams(n, energy, alg)
 
@@ -280,13 +304,15 @@ class sc_Image:
         self.width = original_width
         self.height = original_height
 
-        self.to_jpeg(filepath)
+        if orientation == 'horizontal' :
+            self.transpose()
 
+        self.to_jpeg(filepath)
 
 
     def remove_seam_vert2 (self, alg, return_pixels = False):
 
-        seam = self.get_next_seam(alg, 'vertical')
+        seam = self.get_next_seam(alg)
 
         #print "To be removed: ",seam
 
@@ -336,7 +362,7 @@ class sc_Image:
                 if self.pixels[(w,h)] is None:
                     print "(%s, %s) is None" % (w,h)
 
-
+    # copies back in a remembered seam for enlargement
     def insert_seam(self,pixels, seam):
 
         for pixel in seam:
@@ -373,18 +399,22 @@ class sc_Image:
         self.width += 1
         return pixels
 
+    # averages the coler of two rgbs from pixles
     def average_rbg(self, rgb1, rgb2):
         r1, g1, b1 = rgb1
         r2, g2, b2 = rgb2
 
         return ((r1+r2)/2, (g1+g2)/2, (b1+b2)/2)
 
-    def get_n_seams(self,n, energy, alg) :
+
+    def get_n_seams(self,n, energy, alg,  inverse=False) :
 
 
         seams = []
         for i in range(n):
             self.set_energies(energy)
+            if inverse:
+                self.invert_energies()
             seam = self.remove_seam_vert2(alg, return_pixels = True)
             seams.append( seam )
 
@@ -393,8 +423,13 @@ class sc_Image:
         
         return seams
 
+    def invert_energies(self):
+        for w in range (self.width):
+            for h in range(self.height):
+                self.pixels[(w,h)].energy*=-1
+
     #calculate the lowest energy seams then add duplicates of them to the picture
-    def enlarge (self,  new_pixels, orientation = 'vertical', energy = 'sobel', alg = 'dyn'):
+    def enlarge (self,  new_pixels, orientation = 'vertical', energy = 'e1', alg = 'dyn', inverse=False):
 
         if orientation == 'horizontal' :
             self.transpose()
@@ -405,7 +440,7 @@ class sc_Image:
         original_width =self.width
         original_height = self.height
 
-        seams = self.get_n_seams(new_pixels, energy, alg)
+        seams = self.get_n_seams(new_pixels, energy, alg, inverse)
 
         print "Enlarging image..."
 
@@ -478,7 +513,21 @@ class sc_Image:
         
         self.enlarge(max_width, energy = energy, alg = alg)
 
+    def enlarge_objects (self, new_pixels, orientation="vertical", energy='sobel', alg='dyn'):
+         self.shrink(new_pixels,orientation,energy,alg)
+         self.enlarge(new_pixels,orientation,energy,alg,True)
 
+
+##    def remove_obj (self, orientation = "vertical", energy = 'sobel', alg = 'dyn', x1, x2, y1, y2)
+##        to_remove = 0
+##        if (orientation == "vertical"):
+##            to_remove = y2 - y1
+##            for i in range(y1, to_remove):
+##        else:
+##            ro_revome = x2 - x1
+##            for i in range(x1, to_remove):
+
+ 
     def transpose (self) :
         new_pix = {}
         for i in range(self.width):
@@ -488,7 +537,9 @@ class sc_Image:
         tmp = self.height
         self.height = self.width
         self.width = tmp
-
+        
+# Class that encapsulates pixle data in image sc object including the energy, the unique identifier, the color the postion
+# and a suite of methods to interact with it in the context of the image object
 class Pixel:
     def __init__(self, pos, rgb, gray = None): 
         self.pos = pos
@@ -508,6 +559,7 @@ class Pixel:
 
         self.recalculate = True
 
+    # shifts pixle position by updating ivar
     def shift_pos(self, dx, dy):
         self.pos = (self.pos[0]+dx, self.pos[1]+dy)
 

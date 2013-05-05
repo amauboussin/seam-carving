@@ -27,7 +27,14 @@ import image
 # im.to_energy_pic('images/castle_sobel5.jpg', 'sobel5')
 # im.to_energy_pic('images/castle_scharr5.jpg', 'scharr5')
 
+# im = image.sc_Image.from_filepath2("images/sunset.jpeg")
+# im.enlarge_objects(40, orientation = 'horizontal')
+# im.enlarge_objects(40, orientation = 'vertical')
 
+# im.to_jpeg("images/big_sunset.jpg")
+
+
+<<<<<<< HEAD
 im = image.sc_Image.from_filepath2("images/skateboarder_to_remove.jpg")
 im.remove_object((35, 255, 9))
 im.to_jpeg("images/skateboarder_object_removed.jpg")
@@ -42,6 +49,16 @@ im.to_jpeg("images/skateboarder_object_removed.jpg")
 # im.to_jpeg("images/sunset_removed.jpg")
 
 # im.to_seam_pic("images/skateboarder_entropy_seams.jpg",80, energy = 'entropy')
+=======
+im = image.sc_Image.from_filepath2("images/sunset.jpeg")
+im.to_seam_pic("images/sunset_horizontal_seams.jpg", 40, orientation = 'horizontal', energy = 'entropy')
+
+
+# im = image.sc_Image.from_filepath2("images/dolphin.jpg")
+# im.to_seam_pic("images/dolphin_entropy_hseams_10bins.jpg",50, energy = 'entropy', orientation='horizontal')
+# im.shrink(50,orientation = 'horizontal', energy = 'entropy', alg = 'dyn')
+# im.to_jpeg("images/dolphin_hshrank_entropy_10bins.jpg")
+>>>>>>> master
 
 
 #im.shrink(30,energy = 'sobel', alg = 'dyn')

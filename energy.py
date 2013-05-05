@@ -71,13 +71,19 @@ def entropy(pixel, square):
    hist_len = len(square)
    dim = hist_len**(.5)
    histogram = {}
-   for i in range (10):
-      histogram[b + (b/5)*i] = 1
+
+   for i in range (num_bins):
+      histogram[b + (b/(num_bins/2))*i] = 1
    #histogram = {b:1, 2*b:1, 3*b:1, 4*b:1, 5*b:1, 6*b:1, 7*b:1, 8*b:1, 9*b:1, 10*b:1}
    for x in range (hist_len):
-       for k in sorted(histogram.keys()):
-          #print square[x].gray
-          if (square[x] != None and square[x].gray < k):                
+       if square[x] == None:
+           square[x] = pixel
+##           for i in range (hist_len):
+##               if (x == i):
+##                   square[x] = square[hist_len - 1 - x]
+##                   square[hist_len - 1 - 2*x] = square[hist_len - 1 - x]
+       for k, v in histogram.iteritems():
+          if (square[x].gray < k):                
              histogram[k] += 1
              break
 
@@ -89,6 +95,7 @@ def entropy(pixel, square):
    pixel.energy = -sum([p*(log(p, 2)) for p in square_prob])
    #print pixel.energy
    #pixel.energy = pixel.energy ** 5
+
    #print pixel.energy
    pixel.recalculate = False
    return pixel
