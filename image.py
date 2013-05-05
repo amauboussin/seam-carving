@@ -260,7 +260,6 @@ class sc_Image:
 
     def to_seam_pic (self, filepath, n, energy = 'sobel', alg = 'dyn'):
 
-
         original_pixels = copy.deepcopy(self.pixels)
         original_width = self.width
         original_height = self.height
@@ -446,6 +445,12 @@ class sc_Image:
             self.transpose()
 
 
+    def check_rgb(self, rgb1, rgb2, tolerance):
+        r1,g1,b1 = rgb1
+        r2,g2,b2 = rgb2
+
+        return (r2-tolerance < r1 < r2+tolerance and  g2-tolerance < g1 < g2+tolerance and b2-tolerance < b1 < b2+tolerance )
+
 
     def remove_object(self,rgb, energy = 'sobel', alg = 'dyn'):
 
@@ -453,17 +458,25 @@ class sc_Image:
         for h in range(self.height): 
             width = 0
             for w in range(self.width):
-                if self.pixels[(w,h)].rgb == rgb:
-                    self.pixels[(w,h)].energy = -99999
+                if self.check_rgb(self.pixels[(w,h)].rgb, rgb, 6):
+                    #self.pixels[(w,h)].rgb = (0,0,0)
+                    self.pixels[(w,h)].energy = -99999999999
                     self.pixels[(w,h)].to_remove = True
+                    self.pixels[(w,h)].recalculate = False
                     width += 1
 
             if width > max_width:
                 max_width = width
 
+
+        self.shrink(max_width, energy = energy, alg = alg )
+
+        #fix the original positions for enlargement
+        for h in range(self.height): 
+            for w in range(self.width):
+                self.pixels[(w,h)].original_pos = self.pixels[(w,h)].pos
         
-
-
+        self.enlarge(max_width, energy = energy, alg = alg)
 
 
     def transpose (self) :
